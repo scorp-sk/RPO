@@ -1,0 +1,30 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Rpo\Command\SchemaCommand;
+use Rpo\Command\SyncCommand;
+use Rpo\Command\TokenCreateCommand;
+use Rpo\Command\TokenListCommand;
+use Rpo\Command\TokenRevokeCommand;
+use Rpo\Command\TokenUsageCommand;
+use Rpo\Config;
+use Symfony\Component\Console\Application;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+ini_set('memory_limit', '1G');
+
+$config = Config::load(getenv('RPO_CONFIG') ?: dirname(__DIR__) . '/config.php');
+
+$app = new Application('RPO API', '1.0');
+$app->addCommands([
+    new SyncCommand($config),
+    new SchemaCommand($config, dirname(__DIR__) . '/sql/schema.sql'),
+    new TokenCreateCommand($config),
+    new TokenListCommand($config),
+    new TokenRevokeCommand($config),
+    new TokenUsageCommand($config),
+]);
+$app->run();

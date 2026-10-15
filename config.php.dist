@@ -1,0 +1,48 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * Sample RPO configuration.
+ *
+ * 1. Copy this file to config.php (config.php is in .gitignore and never gets committed):
+ *        cp config.php.dist config.php
+ * 2. Create a MariaDB database and user, e.g.:
+ *        CREATE DATABASE rpo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ *        CREATE USER 'rpo'@'localhost' IDENTIFIED BY 'strong-password';
+ *        GRANT ALL PRIVILEGES ON rpo.* TO 'rpo'@'localhost';
+ * 3. Fill in the database access below (the db section). All other values can keep their defaults.
+ * 4. Create the tables: php bin/rpo rpo:schema
+ *
+ * A different config path can be set with the RPO_CONFIG environment variable.
+ */
+return [
+    // REQUIRED: MariaDB (10.11+) access. The user also needs CREATE, DROP and RENAME privileges,
+    // because the monthly init import swaps the company table for a freshly built one.
+    'db' => [
+        'dsn' => 'mysql:host=localhost;dbname=rpo;charset=utf8mb4',
+        'user' => 'rpo',
+        'password' => '',
+    ],
+
+    // REQUIRED: public S3-compatible storage of the Statistical Office of the SR with the RPO exports.
+    // No need to change.
+    'bucket_url' => 'https://frkqbrydxwdp.compat.objectstorage.eu-frankfurt-1.oraclecloud.com/susr-rpo/',
+
+    // REQUIRED: working directory for downloaded batches (first import ~1 GB) and the sync lock file.
+    // Must be writable by the user that runs rpo:sync from cron.
+    'var_dir' => __DIR__ . '/var',
+
+    // API path prefix. Defaults to /rpo/v1, same as the official RPO API.
+    'base_path' => '/rpo/v1',
+
+    // Time zone; decides which day a request is counted under in the token statistics.
+    'timezone' => 'Europe/Bratislava',
+
+    // Maximum number of /search results for one IČO.
+    'search_limit' => 500,
+
+    // REQUIRED: license text of the Statistical Office of the SR, returned in every response
+    // (a condition of the CC BY 4.0 license). Keep it unchanged.
+    'license' => "1. ŠÚ SR ako správca informačného systému RPO uplatňuje na použitie sprístupnených údajov z RPO uvedených v § 7 ods. 2 a § 7a ods. 4 zákona č. 272/2015 Z. z. o registri právnických osôb, podnikateľov a orgánov verejnej moci a o zmene a doplnení niektorých zákonov (ďalej len „zákon o registri právnických osôb“) medzinárodnú verejnú licenciu Creative Commons Attribution License (cc-by) 4.0 (ďalej len „verejná licencia“).\n2. Predmetom verejnej licencie sú sprístupnené údaje z RPO prostredníctvom webového sídla ŠÚ SR v zmysle § 7 ods. 2 a § 7a ods. 4 zákona o registri právnických osôb.\n3. ŠÚ SR udeľuje súhlas na použitie predmetu verejnej licencie a výkon licencovaných práv („licencia“) podľa vyššie citovanej verejnej licencie.",
+];

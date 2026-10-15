@@ -1,0 +1,18 @@
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Let's Encrypt etc.
+    RewriteRule ^\.well-known/ - [L]
+
+    # Everything else (including src/, vendor/, config.php, ...) goes through the front controller,
+    # so no project files are directly accessible.
+    RewriteCond %{ENV:REDIRECT_STATUS} ^$
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+    Require all denied
+</IfModule>
