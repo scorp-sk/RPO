@@ -85,6 +85,27 @@ history. The `token` parameter is never echoed back in responses (e.g. in `_link
 The IČO must match exactly. One IČO may have several records (e.g. a terminated entity and a new
 one). At most 500 records are returned, ordered by `id`.
 
+### Several IČO in one call: `GET /rpo/v1/search?identifier={IČO}&identifier={IČO}…`
+
+Repeat the `identifier` parameter (or use `identifier[]=`), up to 100 different IČO per call.
+With two or more IČO, `results` is an object keyed by IČO in the order they were requested;
+an IČO that was not found has an empty array. Duplicate IČO are returned once. A call with a
+single IČO keeps the response shown above, so existing clients are not affected.
+
+```json
+{
+  "results": {
+    "36046884": [{ "id": 436213, "identifier": "36046884", "fullName": "WEBY GROUP, s.r.o.", … }],
+    "35880198": [{ "id": 566453, "identifier": "35880198", "fullName": "Numera Balance s. r. o.", … }],
+    "99999998": []
+  },
+  "lastUpdate": "2026-11-12",
+  "license": "1. ŠÚ SR ako správca…"
+}
+```
+
+A batch call counts as one request in the token usage statistics.
+
 ### Record detail: `GET /rpo/v1/entity/{id}`
 
 Returns a single record in the same shape as an item of the `results` array, plus `lastUpdate`
@@ -118,7 +139,8 @@ name or address. If RPO does not state a source register, `sourceRegister` is `n
 | --- | --- | --- |
 | missing, invalid or revoked token | 401 | `Unauthorized` |
 | `/search` without the `identifier` parameter | 400 | `No parameters specified in search request` |
-| empty `identifier=` parameter | 400 | `Request not understood` |
+| empty `identifier=` parameter (also one of several) | 400 | `Request not understood` |
+| more than 100 different IČO, or a URL longer than 4096 characters | 400 | `Invalid input parameter` |
 | non-numeric `id` | 400 | `Invalid input parameter` |
 | non-existent `id` | 404 | `No record found` |
 | unknown path | 404 | `Page Not Found` |

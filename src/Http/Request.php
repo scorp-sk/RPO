@@ -54,6 +54,30 @@ final readonly class Request
         return is_string($value) && strtolower($value) === 'true';
     }
 
+    /**
+     * All values of a query parameter that may repeat (name=a&name=b or name[]=a&name[]=b),
+     * in request order; null if the parameter is absent. $_GET keeps only the last value
+     * of a repeated plain key, so the raw query string is parsed instead.
+     *
+     * @return list<string>|null
+     */
+    public function all(string $name): ?array
+    {
+        $values = null;
+        foreach (explode('&', (string) parse_url($this->uri, PHP_URL_QUERY)) as $part) {
+            if ($part === '') {
+                continue;
+            }
+            [$key, $value] = array_pad(explode('=', $part, 2), 2, '');
+            $key = urldecode($key);
+            if ($key === $name || $key === $name . '[]') {
+                $values[] = urldecode($value);
+            }
+        }
+
+        return $values;
+    }
+
     private static function bearerToken(): ?string
     {
         $header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null;
