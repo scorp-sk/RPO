@@ -4,7 +4,8 @@ A self-hosted, daily updated copy of the **Register of Legal Entities, Entrepren
 Authorities of the Slovak Republic** (*Register právnických osôb, podnikateľov a orgánov verejnej
 moci*, RPO) with a simple REST API. Given an IČO (Slovak company ID), it returns the current name,
 registered address, dates of establishment and termination, and the entry in the source register
-(e.g. the business register or the trade register).
+(e.g. the business register or the trade register). It also checks whether an IČ DPH (Slovak VAT
+ID) is valid, using the list of registered VAT payers of the Financial Administration of the SR.
 
 - **Live data:** changes are downloaded every day from the official public RPO export published by
   the Statistical Office of the Slovak Republic, and once a month the whole database is reloaded
@@ -36,6 +37,11 @@ public RPO export (Statistical Office of the SR)  ──►  rpo:sync (cron, dai
 
 Batches are kept in the storage for 45 days only. If the sync does not run for longer than that,
 `php bin/rpo rpo:sync --init` restores the data.
+
+The **list of registered VAT payers** (`ds_dphs.zip`, open data of the Financial Administration of
+the SR, updated daily around 01:40) is imported by `rpo:vat:sync` as a whole into `vat_payer_new`
+and swapped for `vat_payer` the same way. A list with fewer than 100 000 payers is treated as
+broken and the current data is kept.
 
 ## API
 
@@ -74,7 +80,8 @@ history. The `token` parameter is never echoed back in responses (e.g. in `_link
         "code": "69",
         "registrationOffice": "Slovenská advokátska komora",
         "registrationNumber": "1609"
-      }
+      },
+      "vatId": null
     }
   ],
   "lastUpdate": "2026-10-09",
@@ -95,7 +102,7 @@ single IČO keeps the response shown above, so existing clients are not affected
 ```json
 {
   "results": {
-    "36046884": [{ "id": 436213, "identifier": "36046884", "fullName": "WEBY GROUP, s.r.o.", … }],
+    "31322832": [{ "id": 1003617, "identifier": "31322832", "fullName": "SLOVNAFT, a.s.", … }],
     "35880198": [{ "id": 566453, "identifier": "35880198", "fullName": "Numera Balance s. r. o.", … }],
     "99999998": []
   },
@@ -127,27 +134,63 @@ and `license`.
 | `sourceRegister.code` | source register per codelist CL010112 (1 = business register, 2 = trade register, 18 = municipality…) |
 | `sourceRegister.registrationOffice` | court or office where the entity is registered (e.g. `Okresný súd Žilina`) |
 | `sourceRegister.registrationNumber` | registration number as stated in RPO (e.g. `Sro/13889/L`, `640-23223`) |
+| `vatId` | IČ DPH if the IČO is in the list of registered VAT payers, otherwise `null`; a member of a VAT group gets the group's IČ DPH |
 | `lastUpdate` | export date of the last imported batch, i.e. the day the data is from |
 | `license` | license terms of the Statistical Office of the SR (CC BY 4.0), which every response must include |
 
 For a terminated entity, `fullName` and `address` are `null`, because it no longer has a current
 name or address. If RPO does not state a source register, `sourceRegister` is `null`.
 
+### IČ DPH validity: `GET /rpo/v1/vat?vatId={IČ DPH}`
+
+Checks whether the IČ DPH is in the list of registered VAT payers of the Financial Administration
+of the SR. Spaces and letter case do not matter, and ten digits without a prefix get `SK`
+(`sk 1020 000 135` → `SK1020000135`). A value that is not `SK` + 10 digits is answered with
+`valid: false`.
+
+Instead of `vatId` you can send `identifier={IČO}` to get the IČ DPH of a company. Both parameters
+can be repeated (or sent as `vatId[]=` / `identifier[]=`), up to 100 different values per call,
+but not combined in one call. `results` always has one item per distinct requested value, in
+request order, and a call counts as one request in the token usage statistics.
+
+```json
+{
+  "results": [
+    { "vatId": "SK1020000135", "valid": true, "identifier": "36151475", "fullName": "JUDr. Beáta Krausová" },
+    { "vatId": "SK1234567890", "valid": false, "identifier": null, "fullName": null }
+  ],
+  "lastUpdate": "2026-11-12",
+  "source": "Finančná správa SR – Zoznam registrovaných platiteľov DPH"
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `vatId` | IČ DPH (normalized); with `identifier=` the IČ DPH found for the IČO, or `null` |
+| `valid` | `true` if the IČ DPH is in the list of registered VAT payers |
+| `identifier` | IČO of the payer (`null` for payers without IČO and for a VAT group itself) |
+| `fullName` | name of the payer as stated in the list; for a VAT group `Skupina DPH zastupovaná: …` |
+| `lastUpdate` | date of the imported VAT payer list |
+
+A VAT group (§4b) has one IČ DPH shared by all its members. `vatId=` returns the group itself,
+`identifier=` returns the member with the group's IČ DPH.
+
 ### Error responses
 
 | Situation | HTTP | `message` |
 | --- | --- | --- |
 | missing, invalid or revoked token | 401 | `Unauthorized` |
-| `/search` without the `identifier` parameter | 400 | `No parameters specified in search request` |
-| empty `identifier=` parameter (also one of several) | 400 | `Request not understood` |
-| more than 100 different IČO, or a URL longer than 4096 characters | 400 | `Invalid input parameter` |
+| `/search` without the `identifier` parameter, `/vat` without `vatId` or `identifier` | 400 | `No parameters specified in search request` |
+| empty `identifier=` or `vatId=` parameter (also one of several) | 400 | `Request not understood` |
+| more than 100 different values, or a URL longer than 4096 characters | 400 | `Invalid input parameter` |
+| `/vat` with both `vatId` and `identifier` | 400 | `Invalid input parameter` |
 | non-numeric `id` | 400 | `Invalid input parameter` |
 | non-existent `id` | 404 | `No record found` |
 | unknown path | 404 | `Page Not Found` |
 
 ## Installation
 
-**Requirements:** PHP 8.4+ (extensions `pdo_mysql`, `zlib`, `curl`, `simplexml`), Composer,
+**Requirements:** PHP 8.4+ (extensions `pdo_mysql`, `zlib`, `curl`, `simplexml`, `xmlreader`, `zip`), Composer,
 MariaDB 10.11+, Apache with `mod_rewrite` and `AllowOverride All`. The first import downloads
 about 1 GB of data.
 
@@ -156,6 +199,7 @@ composer install --no-dev
 cp config.php.dist config.php        # fill in the database access
 php bin/rpo rpo:schema               # create the tables
 php bin/rpo rpo:sync -v              # first import: full batch + daily batches
+php bin/rpo rpo:vat:sync -v          # list of registered VAT payers
 php bin/rpo rpo:token:create "Name"  # first access token
 ```
 
@@ -174,6 +218,7 @@ the web.
 | `timezone` | time zone for token statistics (default `Europe/Bratislava`) |
 | `search_limit` | maximum number of `/search` results (default 500) |
 | `license` | license text returned in responses |
+| `vat_url` | URL of the list of registered VAT payers (default `https://report.financnasprava.sk/ds_dphs.zip`) |
 
 The config file path can be changed with the `RPO_CONFIG` environment variable.
 
@@ -185,7 +230,11 @@ to be imported, so it is enough to run it once a day:
 
 ```cron
 30 6 * * * cd /var/www/rpo && /usr/bin/php bin/rpo rpo:sync >> var/sync.log 2>&1
+0 3 * * * cd /var/www/rpo && /usr/bin/php bin/rpo rpo:vat:sync >> var/vat-sync.log 2>&1
 ```
+
+The VAT payer list is published every night around 01:40; `rpo:vat:sync` skips a list date that
+is already imported.
 
 ## Commands
 
@@ -195,6 +244,9 @@ to be imported, so it is enough to run it once a day:
 | `rpo:sync --init` | forces a reload of the latest full batch |
 | `rpo:sync --file=batch-daily/actual_2026-10-08.json.gz` | imports a single daily file |
 | `rpo:sync --dry-run` | only prints what would be imported |
+| `rpo:vat:sync` | imports the list of registered VAT payers if a newer one is published |
+| `rpo:vat:sync --force` | imports the list even if its date is already imported |
+| `rpo:vat:sync --dry-run` | only prints whether the list would be imported |
 | `rpo:schema` | creates the tables (after an update also the missing ones) |
 | `rpo:token:create "Name"` | creates a token for a user; the token is shown only once |
 | `rpo:token:list` | lists tokens: status, last use and request counts for today, the last 30 days and in total |
@@ -212,3 +264,8 @@ The data comes from the public RPO export maintained by the Statistical Office o
 Republic ([export and API description](https://rpo.minv.sk/rpo-api-doc.html)) and is provided under
 the [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) license. That is why every API
 response includes the `license` field with the license terms of the Statistical Office of the SR.
+
+The list of registered VAT payers (*Zoznam registrovaných platiteľov DPH*) is open data of the
+Financial Administration of the Slovak Republic
+([open data](https://www.financnasprava.sk/sk/elektronicke-sluzby/verejne-sluzby/zoznamy)).
+`/vat` responses name it in the `source` field.

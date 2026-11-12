@@ -9,6 +9,7 @@ use Rpo\Command\TokenCreateCommand;
 use Rpo\Command\TokenListCommand;
 use Rpo\Command\TokenRevokeCommand;
 use Rpo\Command\TokenUsageCommand;
+use Rpo\Command\VatSyncCommand;
 use Rpo\Config;
 use Symfony\Component\Console\Application;
 
@@ -26,5 +27,6 @@ $app->addCommands([
     new TokenListCommand($config),
     new TokenRevokeCommand($config),
     new TokenUsageCommand($config),
+    new VatSyncCommand($config),
 ]);
 $app->run();

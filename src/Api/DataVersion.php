@@ -15,4 +15,14 @@ final class DataVersion
 
         return $date === false || $date === null ? null : (string) $date;
     }
+
+    /**
+     * Date of the last imported list of registered VAT payers.
+     */
+    public static function vatLastUpdate(\PDO $pdo): ?string
+    {
+        $date = $pdo->query('SELECT MAX(list_date) FROM vat_import')->fetchColumn();
+
+        return $date === false || $date === null ? null : (string) $date;
+    }
 }

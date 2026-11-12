@@ -9,6 +9,8 @@
         "ext-zlib": "*",
         "ext-curl": "*",
         "ext-simplexml": "*",
+        "ext-xmlreader": "*",
+        "ext-zip": "*",
         "nikic/fast-route": "^1.3",
         "symfony/console": "^7.3"
     },

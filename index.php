@@ -6,6 +6,7 @@ use FastRoute\Dispatcher;
 use FastRoute\RouteCollector;
 use Rpo\Api\EntityController;
 use Rpo\Api\SearchController;
+use Rpo\Api\VatController;
 use Rpo\Auth\TokenRepository;
 use Rpo\Config;
 use Rpo\Db;
@@ -22,6 +23,7 @@ try {
     $dispatcher = FastRoute\simpleDispatcher(function (RouteCollector $r) use ($config): void {
         $r->addRoute('GET', $config->basePath . '/search', 'search');
         $r->addRoute('GET', $config->basePath . '/entity/{id}', 'entity');
+        $r->addRoute('GET', $config->basePath . '/vat', 'vat');
     });
     $route = $dispatcher->dispatch($request->method, $request->path);
 
@@ -37,6 +39,7 @@ try {
             $response = match ($route[1]) {
                 'search' => (new SearchController($pdo, $config->license, $config->searchLimit))($request),
                 'entity' => (new EntityController($pdo, $config->license))($request, $route[2]['id']),
+                'vat' => (new VatController($pdo))($request),
             };
         }
     } else {

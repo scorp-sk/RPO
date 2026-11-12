@@ -29,6 +29,10 @@ return [
     // No need to change.
     'bucket_url' => 'https://frkqbrydxwdp.compat.objectstorage.eu-frankfurt-1.oraclecloud.com/susr-rpo/',
 
+    // List of registered VAT payers of the Financial Administration of the SR (open data, zip with XML),
+    // imported by rpo:vat:sync. No need to change.
+    'vat_url' => 'https://report.financnasprava.sk/ds_dphs.zip',
+
     // REQUIRED: working directory for downloaded batches (first import ~1 GB) and the sync lock file.
     // Must be writable by the user that runs rpo:sync from cron.
     'var_dir' => __DIR__ . '/var',

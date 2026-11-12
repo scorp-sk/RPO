@@ -30,6 +30,27 @@ CREATE TABLE IF NOT EXISTS import_log (
     KEY idx_kind_date (kind, export_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Registered VAT payers (Zoznam registrovaných platiteľov DPH, Financial Administration of the SR).
+-- Reloaded as a whole by rpo:vat:sync; an IČ DPH listed here is valid.
+-- A VAT group (§4b) shares one IČ DPH: one row for the group itself (no IČO) and one per member.
+CREATE TABLE IF NOT EXISTS vat_payer (
+    id     INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    vat_id CHAR(12) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,  -- IČ DPH: SK + 10 digits
+    ico    VARCHAR(32)  NULL,                                        -- NULL for payers without IČO and VAT groups
+    name   VARCHAR(255) NULL,
+    PRIMARY KEY (id),
+    KEY idx_vat_id (vat_id),
+    UNIQUE KEY uq_ico (ico)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Imported versions of the VAT payer list
+CREATE TABLE IF NOT EXISTS vat_import (
+    list_date   DATE         NOT NULL,                                -- DatumAktualizacieZoznamu
+    records     INT UNSIGNED NOT NULL DEFAULT 0,
+    imported_at DATETIME     NOT NULL,
+    PRIMARY KEY (list_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- API user access tokens. Only the SHA-256 hash of the token is stored.
 CREATE TABLE IF NOT EXISTS api_token (
     id           INT UNSIGNED NOT NULL AUTO_INCREMENT,

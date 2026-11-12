@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fb4f4eefba0c6f3c157bb5eec7c28b6e",
+    "content-hash": "7808628c2df8e4c597f7a939bc6ac55b",
     "packages": [
         {
             "name": "nikic/fast-route",
@@ -802,7 +802,9 @@
         "ext-pdo_mysql": "*",
         "ext-zlib": "*",
         "ext-curl": "*",
-        "ext-simplexml": "*"
+        "ext-simplexml": "*",
+        "ext-xmlreader": "*",
+        "ext-zip": "*"
     },
     "platform-dev": [],
     "plugin-api-version": "2.3.0"

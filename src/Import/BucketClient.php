@@ -59,7 +59,14 @@ final class BucketClient
      */
     public function download(string $key, string $target, ?int $expectedSize = null): void
     {
-        $url = $this->bucketUrl . $this->encodeKey($key);
+        self::downloadUrl($this->bucketUrl . $this->encodeKey($key), $target, $expectedSize);
+    }
+
+    /**
+     * Downloads any URL to a file; retries on failure or size mismatch.
+     */
+    public static function downloadUrl(string $url, string $target, ?int $expectedSize = null): void
+    {
         $tmp = $target . '.part';
 
         for ($attempt = 1; ; $attempt++) {
@@ -88,7 +95,7 @@ final class BucketClient
             }
             @unlink($tmp);
             if ($attempt >= self::RETRIES) {
-                throw new \RuntimeException("Download of {$key} failed: " . ($error ?: "size {$size} != {$expectedSize}"));
+                throw new \RuntimeException("Download of {$url} failed: " . ($error ?: "size {$size} != {$expectedSize}"));
             }
             sleep(5 * $attempt);
         }

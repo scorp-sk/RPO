@@ -6,11 +6,14 @@ namespace Rpo\Api;
 
 /**
  * Converts a company table row into the response JSON object.
+ * The row is selected as "SELECT COLUMNS FROM FROM", so it carries the IČ DPH of a registered VAT payer.
  */
 final class CompanyJson
 {
-    public const string COLUMNS = 'id, ico, name, street, reg_number, building_number, postal_code, municipality, establishment, termination,'
-        . ' source_register_code, registration_office, registration_number';
+    public const string COLUMNS = 'c.id, c.ico, c.name, c.street, c.reg_number, c.building_number, c.postal_code, c.municipality,'
+        . ' c.establishment, c.termination, c.source_register_code, c.registration_office, c.registration_number, v.vat_id';
+
+    public const string FROM = 'company c LEFT JOIN vat_payer v ON v.ico = c.ico';
 
     /**
      * @param array<string, mixed> $row
@@ -36,6 +39,7 @@ final class CompanyJson
                 'registrationOffice' => $row['registration_office'],
                 'registrationNumber' => $row['registration_number'],
             ],
+            'vatId' => $row['vat_id'],
         ];
     }
 }

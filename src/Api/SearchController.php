@@ -51,7 +51,7 @@ final readonly class SearchController
      */
     private function findOne(string $ico): array
     {
-        $stmt = $this->pdo->prepare('SELECT ' . CompanyJson::COLUMNS . " FROM company WHERE ico = ? ORDER BY id LIMIT {$this->limit}");
+        $stmt = $this->pdo->prepare('SELECT ' . CompanyJson::COLUMNS . ' FROM ' . CompanyJson::FROM . " WHERE c.ico = ? ORDER BY c.id LIMIT {$this->limit}");
         $stmt->execute([$ico]);
 
         return array_map(CompanyJson::fromRow(...), $stmt->fetchAll());
@@ -66,7 +66,7 @@ final readonly class SearchController
     private function findMany(array $icos): object
     {
         $placeholders = implode(',', array_fill(0, count($icos), '?'));
-        $stmt = $this->pdo->prepare('SELECT ' . CompanyJson::COLUMNS . " FROM company WHERE ico IN ({$placeholders}) ORDER BY id");
+        $stmt = $this->pdo->prepare('SELECT ' . CompanyJson::COLUMNS . ' FROM ' . CompanyJson::FROM . " WHERE c.ico IN ({$placeholders}) ORDER BY c.id");
         $stmt->execute($icos);
 
         $grouped = array_fill_keys($icos, []);

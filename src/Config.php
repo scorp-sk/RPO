@@ -17,6 +17,7 @@ final readonly class Config
         public int $searchLimit,
         public string $license,
         public string $timezone,
+        public string $vatUrl,
     ) {
     }
 
@@ -38,6 +39,7 @@ final readonly class Config
             searchLimit: (int) ($c['search_limit'] ?? 500),
             license: $c['license'],
             timezone: $c['timezone'] ?? 'Europe/Bratislava',
+            vatUrl: $c['vat_url'] ?? 'https://report.financnasprava.sk/ds_dphs.zip',
         );
         date_default_timezone_set($config->timezone);
 

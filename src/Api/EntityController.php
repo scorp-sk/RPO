@@ -8,7 +8,7 @@ use Rpo\Http\JsonResponse;
 use Rpo\Http\Request;
 
 /**
- * GET /entity/{id} – current name and registered address of an entity by its RPO record id.
+ * GET /entity/{id} – current name, registered address and IČ DPH of an entity by its RPO record id.
  */
 final readonly class EntityController
 {
@@ -22,7 +22,7 @@ final readonly class EntityController
             return JsonResponse::error(400, 'Invalid input parameter', $request->uri);
         }
 
-        $stmt = $this->pdo->prepare('SELECT ' . CompanyJson::COLUMNS . ' FROM company WHERE id = ?');
+        $stmt = $this->pdo->prepare('SELECT ' . CompanyJson::COLUMNS . ' FROM ' . CompanyJson::FROM . ' WHERE c.id = ?');
         $stmt->execute([(int) $id]);
         $row = $stmt->fetch();
         if ($row === false) {

@@ -23,7 +23,8 @@ final class SchemaCommand extends Command
     {
         $pdo = Db::connect($this->config);
         $sql = (string) file_get_contents($this->schemaFile);
-        $sql = (string) preg_replace('/^\s*--.*$/m', '', $sql);
+        // Strip all -- comments (also inline ones, which may contain ";") before splitting into statements
+        $sql = (string) preg_replace('/--.*$/m', '', $sql);
 
         foreach (array_filter(array_map('trim', explode(';', $sql))) as $statement) {
             $pdo->exec($statement);
